@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotizador Solar - El Salvador</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #f4f7f6 0%, #e8eef3 100%);
+    margin: 0; padding: 20px; color: #2c3e50; }
+  .container { max-width: 1250px; margin: auto; background: white;
+    padding: 30px; border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.08); }
+  h1 { color: #e67e22; border-bottom: 3px solid #e67e22; padding-bottom: 10px; }
+  h2 { color: #34495e; margin-top: 32px; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; }
+  h3 { color: #34495e; margin-top: 20px; }
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  @media(max-width: 800px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+  .form-group { display: flex; flex-direction: column; }
+  label { font-weight: 600; margin-bottom: 6px; font-size: 0.92em; color: #34495e; }
+  input, select { padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px;
+    font-size: 0.95em; transition: border-color 0.2s; }
+  input:focus, select:focus { outline: none; border-color: #e67e22; }
+  button { padding: 12px 22px; border: none; border-radius: 6px; font-size: 1em;
+    font-weight: 600; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
+  button:hover { opacity: 0.9; }
+  button:active { transform: scale(0.98); }
+  .btn-primary { background: #e67e22; color: white; }
+  .btn-success { background: #27ae60; color: white; }
+  .btn-danger  { background: #c0392b; color: white; }
+  .btn-sm { padding: 6px 12px; font-size: 0.85em; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+  .metrics-4 { grid-template-columns: repeat(4, 1fr); }
+  @media(max-width: 800px) { .metrics, .metrics-4 { grid-template-columns: 1fr 1fr; } }
+  .metric { background: linear-gradient(135deg, #ecf0f1, #d5dbdb);
+    padding: 16px; border-radius: 10px; text-align: center; }
+  .metric .label { font-size: 0.82em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric .value { font-size: 1.5em; font-weight: 700; color: #2c3e50; margin-top: 6px; }
+  .metric.total { background: linear-gradient(135deg, #27ae60, #1e8449); color: white; }
+  .metric.total .label, .metric.total .value { color: white; }
+  .metric.roi { background: linear-gradient(135deg, #2980b9, #1f618d); color: white; }
+  .metric.roi .label, .metric.roi .value { color: white; }
+  .metric.iva { background: linear-gradient(135deg, #c0392b, #922b21); color: white; }
+  .metric.iva .label, .metric.iva .value { color: white; }
+  .metric.iva-exento { background: linear-gradient(135deg, #27ae60, #1e8449); color: white; }
+  .metric.iva-exento .label, .metric.iva-exento .value { color: white; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; background: white; }
+  th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ecf0f1; font-size: 0.92em; }
+  th { background: #34495e; color: white; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
+  tbody tr:hover { background: #f8f9fa; }
+  td input { width: 100%; padding: 6px; border: 1px solid #dfe6e9; border-radius: 4px; font-size: 0.9em; }
+  td input.num { text-align: right; }
+  td.subtotal { text-align: right; font-weight: 600; color: #27ae60; }
+  .row-del { color: #c0392b; cursor: pointer; font-weight: bold; text-align: center; }
+  .row-del:hover { background: #fadbd8; border-radius: 4px; }
+  .info-box { background: #eaf4fc; border-left: 4px solid #2980b9;
+    padding: 12px 16px; border-radius: 6px; margin: 12px 0; font-size: 0.94em; line-height: 1.6; }
+  .success-box { background: #eafaf1; border-left: 4px solid #27ae60;
+    padding: 12px 16px; border-radius: 6px; margin: 12px 0; font-size: 0.94em; line-height: 1.6; }
+  .warning-box { background: #fdf2f0; border-left: 4px solid #c0392b;
+    padding: 12px 16px; border-radius: 6px; margin: 12px 0; font-size: 0.94em; line-height: 1.6; }
+  .labor-box { background: #fff5e6; border: 2px solid #e67e22; padding: 16px; border-radius: 10px; margin: 16px 0; }
+  .labor-options { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+  .labor-opt { flex: 1; min-width: 90px; padding: 12px; border: 2px solid #ddd;
+    background: white; border-radius: 8px; cursor: pointer; text-align: center;
+    font-weight: 600; color: #7f8c8d; transition: all 0.2s; user-select: none; }
+  .labor-opt:hover { border-color: #e67e22; color: #e67e22; }
+  .labor-opt.selected { background: #e67e22; color: white; border-color: #e67e22; }
+  .iva-options { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+  .iva-opt { flex: 1; min-width: 200px; padding: 14px; border: 2px solid #ddd;
+    background: white; border-radius: 8px; cursor: pointer; text-align: center;
+    font-weight: 600; color: #7f8c8d; transition: all 0.2s; user-select: none; }
+  .iva-opt:hover { border-color: #27ae60; color: #27ae60; }
+  .iva-opt.selected { background: #27ae60; color: white; border-color: #27ae60; }
+  .iva-opt.selected.warning { background: #c0392b; border-color: #c0392b; }
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid #ecf0f1; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab { padding: 10px 18px; cursor: pointer; font-weight: 600; color: #7f8c8d;
+    border-radius: 6px 6px 0 0; background: #f8f9fa; font-size: 0.92em; user-select: none; }
+  .tab:hover { background: #ecf0f1; color: #34495e; }
+  .tab.active { background: #e67e22; color: white; }
+  .tab-content { display: none; padding: 8px 0; }
+  .tab-content.active { display: block; }
+  .tramite-item { display: flex; align-items: center; padding: 12px; background: #f8f9fa;
+    border-radius: 8px; margin: 8px 0; border: 1px solid #ecf0f1; }
+  .tramite-item label { display: flex; align-items: center; gap: 12px; margin: 0;
+    cursor: pointer; flex: 1; }
+  .tramite-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+  .tramite-item .monto { font-weight: 700; color: #27ae60; font-size: 1.1em; }
+  .export-row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+  .hidden { display: none; }
+  ul.docs { padding-left: 20px; line-height: 1.8; font-size: 0.93em; }
+  ul.docs li { margin-bottom: 6px; }
+  .footer-note { font-size: 0.85em; color: #7f8c8d; text-align: center; margin-top: 30px;
+    padding-top: 20px; border-top: 1px solid #ecf0f1; }
+  .dist-selector { margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>☀️ Cotizador de Sistemas Solares - El Salvador</h1>
+  <p style="color:#7f8c8d; margin-top:-5px;">
+    Incluye cálculo de IVA (Ley 436) y gastos de trámites con la distribuidora.
+  </p>
+
+  <!-- 1. CLIENTE -->
+  <h2>1. Datos del Cliente</h2>
+  <div class="grid grid-2">
+    <div class="form-group"><label>Nombre completo</label><input type="text" id="custName" placeholder="Ej. Juan Pérez"></div>
+    <div class="form-group"><label>Teléfono</label><input type="text" id="custPhone" placeholder="Ej. 7777-7777"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="custEmail" placeholder="correo@ejemplo.com"></div>
+    <div class="form-group"><label>Ciudad</label><input type="text" id="custCity" placeholder="Ej. Santa Tecla"></div>
+    <div class="form-group"><label>Departamento</label>
+      <select id="custDept">
+        <option>San Salvador</option><option>La Libertad</option><option>Santa Ana</option>
+        <option>San Miguel</option><option>Sonsonate</option><option>Usulután</option>
+        <option>La Paz</option><option>Chalatenango</option><option>Cuscatlán</option>
+        <option>Cabañas</option><option>San Vicente</option><option>Morazán</option>
+        <option>La Unión</option><option>Ahuachapán</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 2. CONFIGURACIÓN -->
+  <h2>2. Configuración del Sistema</h2>
+  <div class="grid grid-3">
+    <div class="form-group"><label>Consumo diario (kWh)</label>
+      <input type="number" id="dailyKwh" value="10" step="0.1" min="0.1"></div>
+    <div class="form-group"><label>Potencia del panel (W)</label>
+      <select id="panelWatt">
+        <option value="100">100W</option><option value="400">400W</option>
+        <option value="500">500W</option><option value="615" selected>615W</option>
+        <option value="650">650W</option>
+      </select></div>
+    <div class="form-group"><label>Horas Solares Pico (~5.0 SV)</label>
+      <input type="number" id="sunHours" value="5.0" step="0.1" min="1" max="8"></div>
+  </div>
+  <div style="margin-top:18px;">
+    <button class="btn-primary" onclick="calcular()">🔍 Calcular Sistema</button>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div id="results" class="hidden">
+    <h2>3. Resultados del Dimensionamiento</h2>
+    <div class="metrics">
+      <div class="metric"><div class="label">Tamaño del sistema</div><div class="value" id="mKw">—</div></div>
+      <div class="metric"><div class="label">Cantidad de paneles</div><div class="value" id="mPanels">—</div></div>
+      <div class="metric"><div class="label">Esquema</div><div class="value" id="mWiring" style="font-size:1.1em;">—</div></div>
+    </div>
+
+    <h3>Esquema de Instalación</h3>
+    <div class="info-box" id="wiringBox"></div>
+
+    <h3>Lista de Materiales y Equipos (editable)</h3>
+    <p style="font-size:0.9em; color:#7f8c8d;">Ajuste cantidades o precios. Los totales se recalculan automáticamente.</p>
+    <table id="materialsTable">
+      <thead><tr>
+        <th style="width:15%">Categoría</th><th style="width:38%">Material / Equipo</th>
+        <th style="width:10%">Cant.</th><th style="width:15%">Precio Unit. (USD)</th>
+        <th style="width:15%">Subtotal (USD)</th><th style="width:7%"></th>
+      </tr></thead>
+      <tbody id="materialsBody"></tbody>
+      <tfoot><tr>
+        <td colspan="4" style="text-align:right; font-weight:700;">Subtotal materiales (sin IVA)</td>
+        <td class="subtotal" id="subtotalMaterials">$0.00</td><td></td>
+      </tr></tfoot>
+    </table>
+    <div style="margin-top:8px;">
+      <button class="btn-sm btn-primary" onclick="agregarFila()">+ Agregar fila</button>
+    </div>
+
+    <!-- IVA -->
+    <h2>4. Tratamiento del IVA (Ley 436)</h2>
+    <p style="color:#7f8c8d; font-size:0.92em;">
+      La Ley 436 exime del IVA la compra e instalación de sistemas solares cuando se realiza a través de un proveedor calificado por SIGET.
+    </p>
+    <div class="iva-options" id="ivaOptions">
+      <div class="iva-opt selected" data-iva="exento" onclick="setIVA('exento')">
+        ✅ Proveedor Calificado por SIGET<br><small>IVA EXENTO (0%)</small>
+      </div>
+      <div class="iva-opt" data-iva="aplica" onclick="setIVA('aplica')">
+        ⚠️ Proveedor NO Calificado<br><small>IVA 13% aplica</small>
+      </div>
+    </div>
+    <div id="ivaMessage"></div>
+
+    <!-- MANO DE OBRA -->
+    <div class="labor-box">
+      <h3 style="margin-top:0;">Mano de Obra</h3>
+      <p style="margin:4px 0;">Porcentaje aplicado sobre el subtotal (con IVA):</p>
+      <div class="labor-options" id="laborOptions">
+        <div class="labor-opt" data-pct="0.70" onclick="setLabor(0.70)">70%</div>
+        <div class="labor-opt" data-pct="0.80" onclick="setLabor(0.80)">80%</div>
+        <div class="labor-opt selected" data-pct="0.90" onclick="setLabor(0.90)">90%</div>
+        <div class="labor-opt" data-pct="1.00" onclick="setLabor(1.00)">100%</div>
+      </div>
+    </div>
+
+    <div class="metrics metrics-4">
+      <div class="metric"><div class="label">Subtotal sin IVA</div><div class="value" id="mSubtotal">$0.00</div></div>
+      <div class="metric" id="ivaMetric"><div class="label">IVA</div><div class="value" id="mIva">$0.00</div></div>
+      <div class="metric"><div class="label" id="mLaborLabel">Mano de obra (90%)</div><div class="value" id="mLabor">$0.00</div></div>
+      <div class="metric total"><div class="label">Materiales + M.O.</div><div class="value" id="mTotalMatMano">$0.00</div></div>
+    </div>
+
+    <!-- TRÁMITES -->
+    <h2>5. Gastos de Trámites con la Distribuidora</h2>
+    <div class="dist-selector">
+      <label>Seleccione su distribuidora:</label>
+      <select id="distSelect" onchange="renderTramites()">
+        <option value="AES">AES (CAESS / CLESA / EEO / DEUSEM)</option>
+        <option value="DELSUR">DELSUR</option>
+      </select>
+    </div>
+    <div class="info-box" id="distNote"></div>
+    <div id="tramitesList"></div>
+    <div class="metrics" style="margin-top:10px;">
+      <div class="metric"><div class="label">Total trámites</div><div class="value" id="mTramites">$0.00</div></div>
+    </div>
+
+    <!-- TOTAL FINAL -->
+    <h2>6. Resumen de Inversión Total</h2>
+    <div class="metrics">
+      <div class="metric"><div class="label">Materiales + M.O.</div><div class="value" id="rMatMano">$0.00</div></div>
+      <div class="metric"><div class="label">Trámites Distribuidora</div><div class="value" id="rTramites">$0.00</div></div>
+      <div class="metric total"><div class="label">💰 INVERSIÓN TOTAL</div><div class="value" id="rTotal">$0.00</div></div>
+    </div>
+
+    <!-- ROI -->
+    <h2>7. Retorno de Inversión (ROI)</h2>
+    <div class="grid grid-2">
+      <div class="form-group">
+        <label>Factura eléctrica mensual (USD)</label>
+        <input type="number" id="facturaMensual" value="150" step="10" min="0" oninput="calcularROI()">
+      </div>
+      <div class="form-group">
+        <label>Tarifa referencial (USD/kWh)</label>
+        <input type="number" id="tarifaKwh" value="0.253" step="0.001" min="0" oninput="calcularROI()">
+      </div>
+    </div>
+    <div class="metrics metrics-4">
+      <div class="metric roi"><div class="label">Ahorro mensual</div><div class="value" id="roiAhorroMes">$0.00</div></div>
+      <div class="metric roi"><div class="label">Ahorro anual</div><div class="value" id="roiAhorroAnio">$0.00</div></div>
+      <div class="metric roi"><div class="label">Recuperación</div><div class="value" id="roiPayback">— años</div></div>
+      <div class="metric roi"><div class="label">Ahorro 25 años</div><div class="value" id="roiAhorro25">$0.00</div></div>
+    </div>
+    <p style="font-size:0.85em; color:#7f8c8d;" id="roiNote"></p>
+
+    <!-- TRÁMITES REGULATORIOS -->
+    <h2>8. Trámites y Requisitos (SIGET)</h2>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('tab-siget', this)">Requisitos SIGET</div>
+      <div class="tab" onclick="showTab('tab-incentivos', this)">Incentivos Ley 436</div>
+    </div>
+    <div id="tab-siget" class="tab-content active">
+      <ul class="docs" id="sigetList"></ul>
+    </div>
+    <div id="tab-incentivos" class="tab-content">
+      <ul class="docs" id="incentivosList"></ul>
+    </div>
+
+    <!-- EXPORTAR -->
+    <h2>9. Exportar</h2>
+    <div class="export-row">
+      <button class="btn-success" onclick="exportarExcel()">📊 Descargar Excel</button>
+      <button class="btn-danger" onclick="exportarPDF()">📄 Descargar PDF</button>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Precios referenciales. Los costos de trámites son estimaciones basadas en el Manual Técnico de AES (2021) y referencias del sector.
+    Confirme los montos vigentes con su distribuidora antes de cotizar.
+  </div>
+</div>
+
+<script>
+/* ========================= CONSTANTES ========================= */
+const PANEL_PRICES = { 100: 45, 400: 140, 500: 175, 615: 200, 650: 210 };
+const PANEL_VOC    = { 100: 22, 400: 40,  500: 45,  615: 55,  650: 55 };
+const INVERTER_PRICE_PER_KW = 150;
+const IVA_RATE = 0.13;
+
+const TRAMITES_AES = {
+  "Factibilidad UPR": 28.46,
+  "Medidor bidireccional (monofásico 120/240V)": 122.94,
+  "Inspección de puesta en operación": 108.80
+};
+
+const TRAMITES_DELSUR = {
+  "Factibilidad UPR (estimado)": 28.46,
+  "Medidor bidireccional (estimado)": 122.94,
+  "Inspección de puesta en operación (estimado)": 108.80
+};
+
+const DISTRIBUIDORAS = {
+  "AES": {
+    tramites: TRAMITES_AES,
+    nota: "Costos oficiales del Manual Técnico y Comercial de AES El Salvador (2021). Incluyen IVA."
+  },
+  "DELSUR": {
+    tramites: TRAMITES_DELSUR,
+    nota: "Costos estimados con base en la regulación SIGET. Para proyectos residenciales pequeños, los estudios de interconexión pueden ser reintegrados."
+  }
+};
+
+const REQUISITOS_SIGET = [
+  "Registro del proveedor instalador ante SIGET (obligatorio para acceder a incentivos fiscales).",
+  "Solicitud de instalación de sistema de autoproducción renovable.",
+  "Diagrama unifilar del sistema eléctrico.",
+  "Memoria de cálculo del dimensionamiento.",
+  "Copia de DUI y NIT del titular.",
+  "Última factura de energía eléctrica.",
+  "Certificado de instalación por técnico calificado."
+];
+
+const INCENTIVOS_LEY_436 = [
+  "Exención del IVA (13%) en equipos y mano de obra del sistema solar (si se compra a proveedor calificado por SIGET).",
+  "Exención del Impuesto sobre la Renta (ISR) por 10 años sobre los ahorros generados.",
+  "Exención de aranceles de importación para equipos certificados.",
+  "Vigencia: 10 años desde la entrada en vigor de la Ley (noviembre 2025)."
+];
+
+/* ========================= ESTADO ========================= */
+const state = {
+  panelCount: 0, systemKw: 0, panelWatt: 615, wiring: "",
+  series: 0, parallel: 0, voc: 0,
+  materials: [], laborPct: 0.90, ivaMode: "exento",
+  subtotal: 0, iva: 0, subtotalConIva: 0, labor: 0,
+  totalMatMano: 0, tramites: {}, totalTramites: 0, totalFinal: 0,
+  roi: null
+};
+
+/* ========================= CÁLCULO ========================= */
+function calcular() {
+  const dailyKwh = parseFloat(document.getElementById('dailyKwh').value);
+  const panelWatt = parseInt(document.getElementById('panelWatt').value);
+  const sunHours = parseFloat(document.getElementById('sunHours').value);
+  if (!dailyKwh || dailyKwh <= 0) { alert("Ingrese un consumo diario válido."); return; }
+
+  const panelKw = panelWatt / 1000;
+  const efficiency = 0.80;
+  let panelCount = Math.ceil(dailyKwh / (sunHours * panelKw * efficiency));
+  if (panelCount < 1) panelCount = 1;
+
+  const systemKw = (panelCount * panelWatt) / 1000;
+  const voc = PANEL_VOC[panelWatt] || 40;
+  let series = Math.max(1, Math.floor(200 / voc));
+  if (series > panelCount) series = panelCount;
+  const parallel = Math.ceil(panelCount / series);
+
+  let wiring;
+  if (panelCount === 1) {
+    wiring = "Instalación de un solo panel; no requiere configuración serie/paralelo.";
+  } else {
+    wiring = `<strong>Configuración recomendada: ${series} en Serie × ${parallel} en Paralelo.</strong><br>`
+           + `La conexión en serie suma voltaje (ideal para MPPT); en paralelo suma corriente. `
+           + `Verifique que el Voc total no exceda el voltaje máximo de entrada del inversor.`;
+  }
+
+  state.panelCount = panelCount;
+  state.systemKw = systemKw;
+  state.panelWatt = panelWatt;
+  state.wiring = wiring.replace(/<[^>]*>/g, '');
+  state.series = series;
+  state.parallel = parallel;
+  state.voc = voc;
+  state.materials = buildMaterials(panelWatt, panelCount, systemKw);
+
+  document.getElementById('mKw').textContent = systemKw.toFixed(2) + ' kWp';
+  document.getElementById('mPanels').textContent = panelCount + ' × ' + panelWatt + 'W';
+  document.getElementById('mWiring').textContent = series + 'S × ' + parallel + 'P';
+  document.getElementById('wiringBox').innerHTML = wiring;
+  renderMaterials();
+  renderTramites();
+  updateTotals();
+  document.getElementById('results').classList.remove('hidden');
+}
+
+/* ========================= MATERIALES ========================= */
+function buildMaterials(panelWatt, panelCount, systemKw) {
+  const inverterKw = Math.max(1, Math.ceil(systemKw * 1.2));
+  return [
+    { cat: "Paneles",      name: `Panel Solar ${panelWatt}W`,         qty: panelCount,        price: PANEL_PRICES[panelWatt] || 200 },
+    { cat: "Inversor",     name: `Inversor Híbrido ${inverterKw}kW`,  qty: 1,                 price: inverterKw * INVERTER_PRICE_PER_KW },
+    { cat: "Estructura",   name: "Rieles de montaje (aluminio)",      qty: panelCount,        price: 25 },
+    { cat: "Estructura",   name: "Clamps y tornillería",              qty: 1,                 price: panelCount * 10 },
+    { cat: "Cableado",     name: "Cable solar fotovoltaico (m)",      qty: panelCount * 10,   price: 1.5 },
+    { cat: "Cableado",     name: "Conectores MC4 (par)",              qty: Math.floor(panelCount/2)+1, price: 4 },
+    { cat: "Cableado",     name: "Cable AC y canalización",           qty: 1,                 price: 60 },
+    { cat: "Protecciones", name: "Breaker DC + Breaker AC",           qty: 1,                 price: 45 },
+    { cat: "Protecciones", name: "Protector de sobretensión (SPD)",   qty: 1,                 price: 50 },
+    { cat: "Protecciones", name: "Sistema de puesta a tierra",        qty: 1,                 price: 35 },
+    { cat: "Accesorios",   name: "Caja de combinación / gabinete",    qty: 1,                 price: 40 },
+    { cat: "Accesorios",   name: "Etiquetado y señalización",         qty: 1,                 price: 15 }
+  ];
+}
+
+function renderMaterials() {
+  const tbody = document.getElementById('materialsBody');
+  tbody.innerHTML = '';
+  state.materials.forEach((m, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${escapeHtml(m.cat)}" onchange="updateField(${i},'cat',this.value)"></td>
+      <td><input type="text" value="${escapeHtml(m.name)}" onchange="updateField(${i},'name',this.value)"></td>
+      <td><input type="number" class="num" value="${m.qty}" min="0" step="1" onchange="updateField(${i},'qty',this.value)"></td>
+      <td><input type="number" class="num" value="${m.price}" min="0" step="0.5" onchange="updateField(${i},'price',this.value)"></td>
+      <td class="subtotal">$${(m.qty * m.price).toFixed(2)}</td>
+      <td><span class="row-del" onclick="eliminarFila(${i})">✕</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function updateField(i, field, val) {
+  if (field === 'qty' || field === 'price') {
+    val = parseFloat(val) || 0;
+    if (val < 0) val = 0;
+  }
+  state.materials[i][field] = val;
+  const tr = document.getElementById('materialsBody').children[i];
+  tr.children[4].textContent = '$' + (state.materials[i].qty * state.materials[i].price).toFixed(2);
+  updateTotals();
+}
+
+function agregarFila() {
+  state.materials.push({ cat: "Nuevo", name: "Nuevo material", qty: 1, price: 0 });
+  renderMaterials();
+  updateTotals();
+}
+
+function eliminarFila(i) {
+  state.materials.splice(i, 1);
+  renderMaterials();
+  updateTotals();
+}
+
+/* ========================= IVA ========================= */
+function setIVA(mode) {
+  state.ivaMode = mode;
+  document.querySelectorAll('.iva-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.iva === mode);
+    el.classList.toggle('warning', el.dataset.iva === 'aplica' && el.dataset.iva === mode);
+  });
+  updateTotals();
+}
+
+/* ========================= TRÁMITES ========================= */
+function renderTramites() {
+  const dist = document.getElementById('distSelect').value;
+  const info = DISTRIBUIDORAS[dist];
+  document.getElementById('distNote').textContent = info.nota;
+
+  const list = document.getElementById('tramitesList');
+  list.innerHTML = '';
+  const container = document.createElement('div');
+  Object.entries(info.tramites).forEach(([nombre, monto], idx) => {
+    const div = document.createElement('div');
+    div.className = 'tramite-item';
+    div.innerHTML = `
+      <label>
+        <input type="checkbox" checked onchange="toggleTramite('${escapeHtml(nombre)}', ${monto}, this.checked)">
+        <span>${nombre}</span>
+      </label>
+      <span class="monto">$${monto.toFixed(2)}</span>
+    `;
+    container.appendChild(div);
+  });
+  list.appendChild(container);
+
+  // Reconstruir el estado de trámites
+  state.tramites = {};
+  Object.entries(info.tramites).forEach(([n, m]) => { state.tramites[n] = m; });
+  updateTotals();
+}
+
+function toggleTramite(nombre, monto, checked) {
+  if (checked) state.tramites[nombre] = monto;
+  else delete state.tramites[nombre];
+  updateTotals();
+}
+
+/* ========================= TOTALES ========================= */
+function setLabor(pct) {
+  state.laborPct = pct;
+  document.querySelectorAll('.labor-opt').forEach(el => {
+    el.classList.toggle('selected', parseFloat(el.dataset.pct) === pct);
+  });
+  updateTotals();
+}
+
+function updateTotals() {
+  const subtotal = state.materials.reduce((s, m) => s + m.qty * m.price, 0);
+  const iva = state.ivaMode === "aplica" ? subtotal * IVA_RATE : 0;
+  const subtotalConIva = subtotal + iva;
+  const labor = subtotalConIva * state.laborPct;
+  const totalMatMano = subtotalConIva + labor;
+  const totalTramites = Object.values(state.tramites).reduce((s, v) => s + v, 0);
+  const totalFinal = totalMatMano + totalTramites;
+
+  state.subtotal = subtotal;
+  state.iva = iva;
+  state.subtotalConIva = subtotalConIva;
+  state.labor = labor;
+  state.totalMatMano = totalMatMano;
+  state.totalTramites = totalTramites;
+  state.totalFinal = totalFinal;
+
+  // Actualizar UI
+  document.getElementById('subtotalMaterials').textContent = '$' + subtotal.toFixed(2);
+  document.getElementById('mSubtotal').textContent = '$' + subtotal.toFixed(2);
+  document.getElementById('mIva').textContent = '$' + iva.toFixed(2);
+  document.getElementById('mLaborLabel').textContent = `Mano de obra (${Math.round(state.laborPct*100)}%)`;
+  document.getElementById('mLabor').textContent = '$' + labor.toFixed(2);
+  document.getElementById('mTotalMatMano').textContent = '$' + totalMatMano.toFixed(2);
+
+  // Mensaje y clase del metric de IVA
+  const ivaMetric = document.getElementById('ivaMetric');
+  const ivaMessage = document.getElementById('ivaMessage');
+  if (state.ivaMode === "exento") {
+    ivaMetric.className = 'metric iva-exento';
+    ivaMessage.className = 'success-box';
+    ivaMessage.innerHTML = '✅ <strong>IVA EXENTO</strong> según Ley 436. La compra e instalación de sistemas solares está exenta de IVA cuando se realiza a través de un proveedor calificado por SIGET.';
+  } else {
+    ivaMetric.className = 'metric iva';
+    ivaMessage.className = 'warning-box';
+    ivaMessage.innerHTML = `⚠️ <strong>IVA del 13% aplicado:</strong> $${iva.toFixed(2)}. La exención de la Ley 436 solo aplica con proveedores calificados por SIGET.`;
+  }
+
+  // Trámites
+  document.getElementById('mTramites').textContent = '$' + totalTramites.toFixed(2);
+  document.getElementById('rMatMano').textContent = '$' + totalMatMano.toFixed(2);
+  document.getElementById('rTramites').textContent = '$' + totalTramites.toFixed(2);
+  document.getElementById('rTotal').textContent = '$' + totalFinal.toFixed(2);
+
+  calcularROI();
+}
+
+/* ========================= ROI ========================= */
+function calcularROI() {
+  if (!state.totalFinal || state.totalFinal <= 0) return;
+  const factura = parseFloat(document.getElementById('facturaMensual').value) || 0;
+  const tarifa  = parseFloat(document.getElementById('tarifaKwh').value) || 0;
+
+  if (factura <= 0) {
+    state.roi = null;
+    document.getElementById('roiAhorroMes').textContent  = '$0.00';
+    document.getElementById('roiAhorroAnio').textContent = '$0.00';
+    document.getElementById('roiPayback').textContent    = '— años';
+    document.getElementById('roiAhorro25').textContent   = '$0.00';
+    document.getElementById('roiNote').textContent =
+      'Ingrese una factura mensual mayor a cero para calcular el ROI.';
+    return;
+  }
+
+  const ahorroMes  = factura * 0.80;
+  const ahorroAnio = ahorroMes * 12;
+  const payback    = state.totalFinal / ahorroAnio;
+  const ahorro25   = (ahorroAnio * 25) - state.totalFinal;
+
+  state.roi = { factura, tarifa, ahorroMes, ahorroAnio, payback, ahorro25 };
+
+  document.getElementById('roiAhorroMes').textContent  = '$' + ahorroMes.toFixed(2);
+  document.getElementById('roiAhorroAnio').textContent = '$' + ahorroAnio.toFixed(2);
+  document.getElementById('roiPayback').textContent    = payback.toFixed(1) + ' años';
+  document.getElementById('roiAhorro25').textContent   = '$' + ahorro25.toFixed(2);
+  document.getElementById('roiNote').textContent =
+    `Cálculo basado en un ahorro del 80% de la factura y una tarifa referencial de $${tarifa}/kWh. ` +
+    `Los resultados reales pueden variar según hábitos de consumo y tarifa de la distribuidora.`;
+}
+
+/* ========================= TABS ========================= */
+function showTab(tabId, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  el.classList.add('active');
+}
+
+function initLists() {
+  const siget = document.getElementById('sigetList');
+  siget.innerHTML = '';
+  REQUISITOS_SIGET.forEach(r => {
+    const li = document.createElement('li'); li.textContent = r; siget.appendChild(li);
+  });
+  const inc = document.getElementById('incentivosList');
+  inc.innerHTML = '';
+  INCENTIVOS_LEY_436.forEach(r => {
+    const li = document.createElement('li'); li.textContent = r; inc.appendChild(li);
+  });
+}
+
+function getCustomer() {
+  return {
+    name:  document.getElementById('custName').value  || "—",
+    phone: document.getElementById('custPhone').value || "—",
+    email: document.getElementById('custEmail').value || "—",
+    city:  document.getElementById('custCity').value  || "—",
+    dept:  document.getElementById('custDept').value
+  };
+}
+
+/* =========================================================
+   EXPORTAR A EXCEL CON EXCELJS
+   ========================================================= */
+async function exportarExcel() {
+  if (!state.totalFinal) { alert("Primero calcule el sistema."); return; }
+  const c = getCustomer();
+
+  const COLOR_HEADER  = "FF1F3864";
+  const COLOR_ACCENT  = "FFE67E22";
+  const COLOR_SUBHEAD = "FFD6DCE4";
+  const COLOR_TOTAL   = "FF27AE60";
+  const COLOR_LIGHT   = "FFF2F5F9";
+  const COLOR_WHITE   = "FFFFFFFF";
+  const COLOR_GREY    = "FF7F7F7F";
+  const COLOR_IVA     = "FFC0392B";
+
+  const thin = { style: "thin", color: { argb: "FFB0B0B0" } };
+  const border = { top: thin, bottom: thin, left: thin, right: thin };
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Cotizador Solar SV";
+  wb.created = new Date();
+
+  // ---------- HOJA 1: CLIENTE Y SISTEMA ----------
+  const ws1 = wb.addWorksheet("Cliente y Sistema", {
+    properties: { defaultRowHeight: 20 },
+    views: [{ showGridLines: false }]
+  });
+  ws1.columns = [{ width: 32 }, { width: 45 }];
+
+  ws1.mergeCells("A1:B1");
+  const t1 = ws1.getCell("A1");
+  t1.value = "COTIZACIÓN DE SISTEMA SOLAR FOTOVOLTAICO";
+  t1.font = { bold: true, size: 16, color: { argb: COLOR_WHITE } };
+  t1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_HEADER } };
+  t1.alignment = { horizontal: "center", vertical: "middle" };
+  ws1.getRow(1).height = 32;
+
+  ws1.mergeCells("A2:B2");
+  const t2 = ws1.getCell("A2");
+  t2.value = "El Salvador — Documento generado automáticamente";
+  t2.font = { italic: true, size: 10, color: { argb: COLOR_GREY } };
+  t2.alignment = { horizontal: "center" };
+
+  ws1.mergeCells("A4:B4");
+  const s1 = ws1.getCell("A4");
+  s1.value = "DATOS DEL CLIENTE";
+  s1.font = { bold: true, size: 12, color: { argb: COLOR_WHITE } };
+  s1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_ACCENT } };
+  s1.alignment = { vertical: "middle" };
+
+  const clientRows = [
+    ["Nombre completo", c.name], ["Teléfono", c.phone],
+    ["Correo electrónico", c.email], ["Ciudad", c.city], ["Departamento", c.dept]
+  ];
+  clientRows.forEach((row, i) => {
+    const r = 5 + i;
+    const a = ws1.getCell(`A${r}`); const b = ws1.getCell(`B${r}`);
+    a.value = row[0]; b.value = row[1];
+    a.font = { bold: true };
+    a.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_LIGHT } };
+    a.border = border; b.border = border;
+  });
+
+  ws1.mergeCells("A11:B11");
+  const s2 = ws1.getCell("A11");
+  s2.value = "CONFIGURACIÓN DEL SISTEMA";
+  s2.font = { bold: true, size: 12, color: { argb: COLOR_WHITE } };
+  s2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_ACCENT } };
+
+  const systemRows = [
+    ["Consumo diario", parseFloat(document.getElementById('dailyKwh').value) + " kWh"],
+    ["Potencia del panel", state.panelWatt + " W"],
+    ["Cantidad de paneles", state.panelCount],
+    ["Tamaño del sistema", state.systemKw.toFixed(2) + " kWp"],
+    ["Horas solares pico", parseFloat(document.getElementById('sunHours').value) + " h"]
+  ];
+  systemRows.forEach((row, i) => {
+    const r = 12 + i;
+    const a = ws1.getCell(`A${r}`); const b = ws1.getCell(`B${r}`);
+    a.value = row[0]; b.value = row[1];
+    a.font = { bold: true };
+    a.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_LIGHT } };
+    a.border = border; b.border = border;
+  });
+
+  ws1.getCell("A18").value = "Fecha de emisión";
+  ws1.getCell("B18").value = new Date().toLocaleString("es-SV");
+  ws1.getCell("A18").font = { italic: true, size: 9, color: { argb: COLOR_GREY } };
+  ws1.getCell("B18").font = { italic: true, size: 9, color: { argb: COLOR_GREY } };
+
+  // ---------- HOJA 2: MATERIALES ----------
+  const ws2 = wb.addWorksheet("Materiales y Mano de Obra", {
+    properties: { defaultRowHeight: 18 },
+    views: [{ showGridLines: false }]
+  });
+  ws2.columns = [{ width: 16 }, { width: 46 }, { width: 8 }, { width: 18 }, { width: 16 }];
+
+  ws2.mergeCells("A1:E1");
+  const mt = ws2.getCell("A1");
+  mt.value = "LISTA DE MATERIALES Y EQUIPOS";
+  mt.font = { bold: true, size: 16, color: { argb: COLOR_WHITE } };
+  mt.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_HEADER } };
+  mt.alignment = { horizontal: "center", vertical: "middle" };
+  ws2.getRow(1).height = 32;
+
+  ws2.mergeCells("A2:E2");
+  const msub = ws2.getCell("A2");
+  msub.value = "Cotización generada por el cotizador solar — El Salvador";
+  msub.font = { italic: true, size: 10, color: { argb: COLOR_GREY } };
+  msub.alignment = { horizontal: "center" };
+
+  const headers = ["Categoría", "Material / Equipo", "Cant.", "Precio Unit. (USD)", "Subtotal (USD)"];
+  headers.forEach((h, i) => {
+    const cell = ws2.getCell(4, i + 1);
+    cell.value = h;
+    cell.font = { bold: true, size: 11, color: { argb: COLOR_WHITE } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_ACCENT } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = border;
+  });
+  ws2.getRow(4).height = 24;
+
+  const firstRow = 5;
+  state.materials.forEach((m, i) => {
+    const r = firstRow + i;
+    const bg = i % 2 === 1 ? COLOR_LIGHT : COLOR_WHITE;
+    [m.cat, m.name, m.qty, m.price, +(m.qty * m.price).toFixed(2)].forEach((v, j) => {
+      const cell = ws2.getCell(r, j + 1);
+      cell.value = v;
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      cell.border = border;
+    });
+    ws2.getCell(r, 3).alignment = { horizontal: "center" };
+    ws2.getCell(r, 4).numFmt = '"$"#,##0.00';
+    ws2.getCell(r, 4).alignment = { horizontal: "right" };
+    ws2.getCell(r, 5).numFmt = '"$"#,##0.00';
+    ws2.getCell(r, 5).alignment = { horizontal: "right" };
+  });
+
+  const lastRow = firstRow + state.materials.length - 1;
+  let r = lastRow + 2;
+
+  // Helper para fila de totales
+  function totalsRow(row, label, value, fill, color) {
+    ws2.mergeCells(`A${row}:D${row}`);
+    const lbl = ws2.getCell(`A${row}`);
+    lbl.value = label;
+    lbl.font = { bold: true, size: 11, color: { argb: color } };
+    lbl.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
+    lbl.alignment = { horizontal: "right", vertical: "middle" };
+    lbl.border = border;
+    ["B", "C", "D"].forEach(col => {
+      const cc = ws2.getCell(`${col}${row}`);
+      cc.border = border;
+      cc.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
+    });
+    const val = ws2.getCell(`E${row}`);
+    val.value = value;
+    val.numFmt = '"$"#,##0.00';
+    val.font = { bold: true, size: 11, color: { argb: color } };
+    val.alignment = { horizontal: "right", vertical: "middle" };
+    val.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
+    val.border = border;
+  }
+
+  totalsRow(r, "Subtotal materiales (sin IVA)", +state.subtotal.toFixed(2), COLOR_SUBHEAD, "FF000000"); r++;
+
+  // IVA
+  if (state.iva > 0) {
+    totalsRow(r, "IVA (13%)", +state.iva.toFixed(2), COLOR_IVA, COLOR_WHITE); r++;
+  } else {
+    totalsRow(r, "IVA (13%) — EXENTO por Ley 436", 0, "FFEAF7EE", COLOR_TOTAL); r++;
+  }
+
+  totalsRow(r, "Subtotal materiales (con IVA)", +state.subtotalConIva.toFixed(2), COLOR_SUBHEAD, "FF000000"); r++;
+  totalsRow(r, `Mano de obra (${Math.round(state.laborPct*100)}%)`, +state.labor.toFixed(2), COLOR_SUBHEAD, "FF000000"); r++;
+  totalsRow(r, "TOTAL Materiales + Mano de Obra", +state.totalMatMano.toFixed(2), COLOR_TOTAL, COLOR_WHITE);
+  ws2.getRow(r).height = 26;
+
+  // ---------- HOJA 3: TRÁMITES ----------
+  const ws3 = wb.addWorksheet("Trámites Distribuidora", {
+    properties: { defaultRowHeight: 20 },
+    views: [{ showGridLines: false }]
+  });
+  ws3.columns = [{ width: 48 }, { width: 22 }];
+
+  ws3.mergeCells("A1:B1");
+  const tt = ws3.getCell("A1");
+  tt.value = "GASTOS DE TRÁMITES CON LA DISTRIBUIDORA";
+  tt.font = { bold: true, size: 16, color: { argb: COLOR_WHITE } };
+  tt.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_HEADER } };
+  tt.alignment = { horizontal: "center", vertical: "middle" };
+  ws3.getRow(1).height = 32;
+
+  ws3.mergeCells("A2:B2");
+  const tts = ws3.getCell("A2");
+  tts.value = "Costos referenciales aprobados por SIGET";
+  tts.font = { italic: true, size: 10, color: { argb: COLOR_GREY } };
+  tts.alignment = { horizontal: "center" };
+
+  if (Object.keys(state.tramites).length > 0) {
+    ["Concepto", "Monto (USD)"].forEach((h, i) => {
+      const cell = ws3.getCell(4, i + 1);
+      cell.value = h;
+      cell.font = { bold: true, size: 11, color: { argb: COLOR_WHITE } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_ACCENT } };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = border;
+    });
+    ws3.getRow(4).height = 24;
+
+    Object.entries(state.tramites).forEach(([nombre, monto], i) => {
+      const r = 5 + i;
+      const bg = i % 2 === 1 ? COLOR_LIGHT : COLOR_WHITE;
+      const a = ws3.getCell(`A${r}`); const b = ws3.getCell(`B${r}`);
+      a.value = nombre; b.value = monto;
+      a.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      b.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      a.border = border; b.border = border;
+      b.numFmt = '"$"#,##0.00';
+      b.alignment = { horizontal: "right" };
+    });
+
+    const last = 5 + Object.keys(state.tramites).length - 1;
+    const totalRow = last + 2;
+    ws3.mergeCells(`A${totalRow}:A${totalRow}`);
+    const tl = ws3.getCell(`A${totalRow}`);
+    tl.value = "TOTAL TRÁMITES";
+    tl.font = { bold: true, size: 12, color: { argb: COLOR_WHITE } };
+    tl.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_TOTAL } };
+    tl.alignment = { horizontal: "right", vertical: "middle" };
+    tl.border = border;
+    const tv = ws3.getCell(`B${totalRow}`);
+    tv.value = +state.totalTramites.toFixed(2);
+    tv.numFmt = '"$"#,##0.00';
+    tv.font = { bold: true, size: 12, color: { argb: COLOR_WHITE } };
+    tv.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_TOTAL } };
+    tv.alignment = { horizontal: "right", vertical: "middle" };
+    tv.border = border;
+  }
+
+  // ---------- HOJA 4: ESQUEMA DE CONEXIÓN ----------
+  const ws4 = wb.addWorksheet("Esquema de Conexión", {
+    properties: { defaultRowHeight: 20 },
+    views: [{ showGridLines: false }]
+  });
+  ws4.columns = [{ width: 6 }, { width: 110 }];
+
+  ws4.mergeCells("A1:B1");
+  const w4t = ws4.getCell("A1");
+  w4t.value = "ESQUEMA DE CONEXIÓN DEL SISTEMA FOTOVOLTAICO";
+  w4t.font = { bold: true, size: 16, color: { argb: COLOR_WHITE } };
+  w4t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_HEADER } };
+  w4t.alignment = { horizontal: "center", vertical: "middle" };
+  ws4.getRow(1).height = 32;
+
+  ws4.mergeCells("A2:B2");
+  const w4s = ws4.getCell("A2");
+  w4s.value = "Recomendación técnica de instalación — Serie / Paralelo";
+  w4s.font = { italic: true, size: 10, color: { argb: COLOR_GREY } };
+  w4s.alignment = { horizontal: "center" };
+
+  const voc = state.voc;
+  const series = state.series;
+  const parallel = state.parallel;
+  const totalVoc = (voc * series).toFixed(1);
+  const sobrantes = state.panelCount - (series * parallel);
+
+  function sectionHeader(row, text) {
+    ws4.mergeCells(`A${row}:B${row}`);
+    const cell = ws4.getCell(`A${row}`);
+    cell.value = text;
+    cell.font = { bold: true, size: 12, color: { argb: COLOR_WHITE } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_ACCENT } };
+    cell.alignment = { vertical: "middle" };
+    ws4.getRow(row).height = 22;
+  }
+
+  function kvRow(row, key, value, opts = {}) {
+    const a = ws4.getCell(`A${row}`); const b = ws4.getCell(`B${row}`);
+    a.value = key; b.value = value;
+    a.font = { bold: true };
+    a.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_LIGHT } };
+    a.border = border; b.border = border;
+    if (opts.wrap) b.alignment = { wrapText: true, vertical: "top" };
+  }
+
+  sectionHeader(4, "RESUMEN DEL ARREGLO");
+  kvRow(5, "Potencia del panel", state.panelWatt + " W");
+  kvRow(6, "Cantidad total de paneles", state.panelCount);
+  kvRow(7, "Paneles por string (en serie)", series);
+  kvRow(8, "Strings en paralelo", parallel);
+  kvRow(9, "Voc estimado por panel", voc + " V");
+  kvRow(10, "Voc total del string (serie)", totalVoc + " V");
+
+  sectionHeader(12, "CONFIGURACIÓN RECOMENDADA");
+  ws4.mergeCells("A13:B13");
+  const cfg = ws4.getCell("A13");
+  cfg.value = state.panelCount === 1
+    ? "1 panel — no requiere serie/paralelo"
+    : `${series} en Serie × ${parallel} en Paralelo`;
+  cfg.font = { bold: true, size: 13, color: { argb: COLOR_TOTAL } };
+  cfg.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEAF7EE" } };
+  cfg.alignment = { horizontal: "center", vertical: "middle" };
+  cfg.border = border;
+  ws4.getRow(13).height = 26;
+
+  sectionHeader(15, "PASOS DE CONEXIÓN");
+  const pasos = [
+    "Agrupe los paneles en strings del tamaño indicado (en serie). Conecte el positivo del primer panel al negativo del siguiente.",
+    "Verifique la polaridad de cada string con un multímetro antes de conectarlo al combinador.",
+    "Una los strings en paralelo en la caja de combinación (positivos con positivos y negativos con negativos).",
+    "Instale fusibles o breakers DC por string en la caja de combinación, dimensionados según la corriente Isc.",
+    "Conecte la salida del combinador a la entrada DC del inversor MPPT respetando la polaridad.",
+    "Verifique que el Voc total del string NO exceda el voltaje máximo de entrada del inversor."
+  ];
+  pasos.forEach((p, i) => {
+    kvRow(16 + i, (i + 1).toString(), p, { wrap: true });
+    ws4.getRow(16 + i).height = 30;
+  });
+
+  sectionHeader(23, "NOTAS TÉCNICAS");
+  const notas = [
+    `El Voc total estimado del string (${totalVoc} V) debe quedar por debajo del máximo del inversor.`,
+    "La conexión en serie suma voltaje e iguala corriente; la conexión en paralelo suma corriente e iguala voltaje.",
+    "Use cable solar certificado y conectores MC4 originales para evitar puntos calientes.",
+    "Cada string debe tener su propio par de conductores hasta la caja de combinación.",
+    sobrantes > 0
+      ? `Quedan ${sobrantes} panel(es) sin agrupar; ajuste el diseño.`
+      : "El arreglo cubre exactamente los paneles calculados."
+  ];
+  notas.forEach((n, i) => {
+    kvRow(24 + i, "•", n, { wrap: true });
+    ws4.getRow(24 + i).height = 26;
+  });
+
+  // ---------- HOJA 5: ROI ----------
+  if (state.roi) {
+    const ws5 = wb.addWorksheet("ROI", {
+      properties: { defaultRowHeight: 20 },
+      views: [{ showGridLines: false }]
+    });
+    ws5.columns = [{ width: 36 }, { width: 22 }];
+
+    ws5.mergeCells("A1:B1");
+    const r1 = ws5.getCell("A1");
+    r1.value = "RETORNO DE INVERSIÓN (ROI)";
+    r1.font = { bold: true, size: 16, color: { argb: COLOR_WHITE } };
+    r1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_HEADER } };
+    r1.alignment = { horizontal: "center", vertical: "middle" };
+    ws5.getRow(1).height = 32;
+
+    ws5.mergeCells("A2:B2");
+    const r2 = ws5.getCell("A2");
+    r2.value = "Cálculo basado en ahorro estimado del 80% sobre la factura actual";
+    r2.font = { italic: true, size: 10, color: { argb: COLOR_GREY } };
+    r2.alignment = { horizontal: "center" };
+
+    ["Concepto", "Valor"].forEach((h, i) => {
+      const cell = ws5.getCell(4, i + 1);
+      cell.value = h;
+      cell.font = { bold: true, size: 11, color: { argb: COLOR_WHITE } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_ACCENT } };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = border;
+    });
+
+    const roiRows = [
+      ["Factura eléctrica mensual", +state.roi.factura.toFixed(2), '"$"#,##0.00'],
+      ["Tarifa referencial (USD/kWh)", state.roi.tarifa, "0.000"],
+      ["Ahorro mensual estimado", +state.roi.ahorroMes.toFixed(2), '"$"#,##0.00'],
+      ["Ahorro anual estimado", +state.roi.ahorroAnio.toFixed(2), '"$"#,##0.00'],
+      ["Periodo de recuperación (años)", +state.roi.payback.toFixed(1), "0.0"],
+      ["Ahorro neto a 25 años", +state.roi.ahorro25.toFixed(2), '"$"#,##0.00']
+    ];
+    roiRows.forEach((row, i) => {
+      const r = 5 + i;
+      const bg = i % 2 === 1 ? COLOR_LIGHT : COLOR_WHITE;
+      const a = ws5.getCell(`A${r}`); const b = ws5.getCell(`B${r}`);
+      a.value = row[0]; b.value = row[1];
+      a.font = { bold: true };
+      a.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      b.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+      a.border = border; b.border = border;
+      b.numFmt = row[2];
+      b.alignment = { horizontal: "right" };
+    });
+
+    ws5.getCell("A9").font = { bold: true, color: { argb: COLOR_TOTAL } };
+    ws5.getCell("B9").font = { bold: true, color: { argb: COLOR_TOTAL } };
+  }
+
+  // ---------- HOJA 6: RESUMEN TOTAL ----------
+  const ws6 = wb.addWorksheet("Resumen Total", {
+    properties: { defaultRowHeight: 20 },
+    views: [{ showGridLines: false }]
+  });
+  ws6.columns = [{ width: 42 }, { width: 22 }];
+
+  ws6.mergeCells("A1:B1");
+  const rt1 = ws6.getCell("A1");
+  rt1.value = "RESUMEN DE INVERSIÓN TOTAL";
+  rt1.font = { bold: true, size: 16, color: { argb: COLOR_WHITE } };
+  rt1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_HEADER } };
+  rt1.alignment = { horizontal: "center", vertical: "middle" };
+  ws6.getRow(1).height = 32;
+
+  const summaryRows = [
+    ["Subtotal materiales (sin IVA)", +state.subtotal.toFixed(2), '"$"#,##0.00'],
+    [state.ivaMode === "exento" ? "IVA (exento Ley 436)" : "IVA (13%)", +state.iva.toFixed(2), '"$"#,##0.00'],
+    ["Subtotal con IVA", +state.subtotalConIva.toFixed(2), '"$"#,##0.00'],
+    [`Mano de obra (${Math.round(state.laborPct*100)}%)`, +state.labor.toFixed(2), '"$"#,##0.00'],
+    ["Materiales + Mano de obra", +state.totalMatMano.toFixed(2), '"$"#,##0.00'],
+    ["Trámites distribuidora", +state.totalTramites.toFixed(2), '"$"#,##0.00']
+  ];
+  summaryRows.forEach((row, i) => {
+    const r = 3 + i;
+    const bg = i % 2 === 1 ? COLOR_LIGHT : COLOR_WHITE;
+    const a = ws6.getCell(`A${r}`); const b = ws6.getCell(`B${r}`);
+    a.value = row[0]; b.value = row[1];
+    a.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+    b.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+    a.border = border; b.border = border;
+    b.numFmt = row[2];
+    b.alignment = { horizontal: "right" };
+  });
+
+  const finalRow = 3 + summaryRows.length + 1;
+  ws6.mergeCells(`A${finalRow}:B${finalRow}`);
+  const fr = ws6.getCell(`A${finalRow}`);
+  fr.value = `INVERSIÓN TOTAL: $${state.totalFinal.toFixed(2)}`;
+  fr.font = { bold: true, size: 16, color: { argb: COLOR_WHITE } };
+  fr.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR_TOTAL } };
+  fr.alignment = { horizontal: "center", vertical: "middle" };
+  fr.border = border;
+  ws6.getRow(finalRow).height = 34;
+
+  // ---------- Descargar ----------
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  });
+  saveAs(blob, `Cotizacion_${sanitize(c.name)}.xlsx`);
+}
+
+/* =========================================================
+   EXPORTAR A PDF
+   ========================================================= */
+function exportarPDF() {
+  if (!state.totalFinal) { alert("Primero calcule el sistema."); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const c = getCustomer();
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 18;
+
+  doc.setFontSize(16).setFont(undefined, 'bold');
+  doc.text("Cotización de Sistema Solar - El Salvador", 14, y); y += 6;
+  doc.setFontSize(9).setFont(undefined, 'normal').setTextColor(120);
+  doc.text("Fecha: " + new Date().toLocaleString('es-SV'), 14, y); y += 10;
+  doc.setTextColor(0);
+
+  doc.setFontSize(11).setFont(undefined, 'bold').text("Datos del Cliente", 14, y); y += 6;
+  doc.setFontSize(9).setFont(undefined, 'normal');
+  doc.text(`Nombre: ${c.name}`, 14, y); y += 5;
+  doc.text(`Teléfono: ${c.phone}    Email: ${c.email}`, 14, y); y += 5;
+  doc.text(`Ciudad: ${c.city}    Departamento: ${c.dept}`, 14, y); y += 9;
+
+  doc.setFontSize(11).setFont(undefined, 'bold').text("Configuración del Sistema", 14, y); y += 6;
+  doc.setFontSize(9).setFont(undefined, 'normal');
+  doc.text(`Consumo diario: ${document.getElementById('dailyKwh').value} kWh`, 14, y); y += 5;
+  doc.text(`Sistema: ${state.systemKw.toFixed(2)} kWp  |  Paneles: ${state.panelCount} × ${state.panelWatt}W`, 14, y); y += 5;
+  doc.text(`Esquema: ${state.series} Serie × ${state.parallel} Paralelo`, 14, y); y += 9;
+
+  doc.setFontSize(11).setFont(undefined, 'bold').text("Lista de Materiales y Equipos", 14, y); y += 2;
+  const body = state.materials.map(m => [m.cat, m.name, m.qty, `$${m.price.toFixed(2)}`, `$${(m.qty*m.price).toFixed(2)}`]);
+  body.push(["", "", "", "Subtotal materiales (sin IVA)", `$${state.subtotal.toFixed(2)}`]);
+  if (state.iva > 0) {
+    body.push(["", "", "", "IVA (13%)", `$${state.iva.toFixed(2)}`]);
+  } else {
+    body.push(["", "", "", "IVA (13%) — EXENTO Ley 436", "$0.00"]);
+  }
+  body.push(["", "", "", "Subtotal con IVA", `$${state.subtotalConIva.toFixed(2)}`]);
+  body.push(["", "", "", `Mano de obra (${Math.round(state.laborPct*100)}%)`, `$${state.labor.toFixed(2)}`]);
+  body.push(["", "", "", "TOTAL Materiales + M.O.", `$${state.totalMatMano.toFixed(2)}`]);
+
+  doc.autoTable({
+    startY: y + 2,
+    head: [["Categoría", "Material / Equipo", "Cant.", "P. Unit.", "Subtotal"]],
+    body: body,
+    styles: { fontSize: 8, cellPadding: 2.5 },
+    headStyles: { fillColor: [52, 73, 94], textColor: 255, fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: 22 }, 1: { cellWidth: 70 },
+      2: { cellWidth: 14, halign: 'center' },
+      3: { cellWidth: 25, halign: 'right' },
+      4: { cellWidth: 25, halign: 'right' }
+    }
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Trámites
+  if (Object.keys(state.tramites).length > 0) {
+    if (y > 230) { doc.addPage(); y = 20; }
+    doc.setFontSize(11).setFont(undefined, 'bold').text("Gastos de Trámites con la Distribuidora", 14, y); y += 2;
+    const tBody = Object.entries(state.tramites).map(([n, m]) => [n, `$${m.toFixed(2)}`]);
+    tBody.push(["TOTAL TRÁMITES", `$${state.totalTramites.toFixed(2)}`]);
+    doc.autoTable({
+      startY: y,
+      head: [["Concepto", "Monto (USD)"]],
+      body: tBody,
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [230, 126, 34], textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 1: { halign: 'right' } },
+      didParseCell: function(data) {
+        if (data.row.index === tBody.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [39, 174, 96];
+          data.cell.styles.textColor = 255;
+        }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 8;
+  }
+
+  // Total final
+  if (y > 250) { doc.addPage(); y = 20; }
+  doc.setFontSize(12).setFont(undefined, 'bold').setTextColor(39, 174, 96);
+  doc.text(`INVERSIÓN TOTAL: $${state.totalFinal.toFixed(2)}`, 14, y); y += 10;
+  doc.setTextColor(0);
+
+  // ROI
+  if (state.roi) {
+    if (y > 230) { doc.addPage(); y = 20; }
+    doc.setFontSize(11).setFont(undefined, 'bold').text("Retorno de Inversión (ROI)", 14, y); y += 6;
+    doc.setFontSize(9).setFont(undefined, 'normal');
+    doc.text(`Ahorro mensual: $${state.roi.ahorroMes.toFixed(2)}`, 14, y); y += 5;
+    doc.text(`Ahorro anual: $${state.roi.ahorroAnio.toFixed(2)}`, 14, y); y += 5;
+    doc.text(`Recuperación: ${state.roi.payback.toFixed(1)} años`, 14, y); y += 5;
+    doc.text(`Ahorro neto a 25 años: $${state.roi.ahorro25.toFixed(2)}`, 14, y); y += 10;
+  }
+
+  doc.save(`Cotizacion_${sanitize(c.name)}.pdf`);
+}
+
+function sanitize(s) {
+  return String(s).replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'Cliente';
+}
+
+/* ========================= INIT ========================= */
+window.addEventListener('DOMContentLoaded', initLists);
+</script>
+</body>
+</html>
